@@ -28,9 +28,18 @@ void func(int sockfd)
         bzero(buff, sizeof(buff));
         read(sockfd, buff, sizeof(buff));
         printf("%s\n", buff);
-        bzero(buff, sizeof(buff));
-        scanf("%s", buff);
-        write(sockfd, buff, sizeof(buff));
+        while(1){
+            scanf(" %c", &answer);
+            if((answer != 'n') && (answer != 'y')){
+                printf("Invalid input! Try again!\n");
+            }else if(answer == 'n'){
+                write(sockfd, &answer, sizeof(char));
+                return;
+            }else{
+                break;
+            }
+        }
+        write(sockfd, &answer, sizeof(char));
     }
     for(int i=0; i<questsNum; i++){
         printf("================================================================================================================\n");

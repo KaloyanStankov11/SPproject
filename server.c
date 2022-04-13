@@ -53,8 +53,8 @@ void func(int connfd)
             strcpy(buff, "You have done this test yet! If you do it again, your result will not be changed! Do you want to continue? [y/n]");
             write(connfd, buff, sizeof(buff));
             bzero(buff, MAX);
-            read(connfd, buff, sizeof(buff));
-            if(strcmp(buff, "n") == 0){ 
+            read(connfd, &answer, sizeof(char));
+            if(answer == 'n'){ 
                 return;
             }
         }else{
