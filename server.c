@@ -31,66 +31,70 @@ Question questions[questsNum];
 void loadQuestions();
 void saveResult(char username[], int result);
 int checkUser(char username[30]);
-// Function designed for chat between client and server.
+// Function designed for communication between client and server.
 void func(int connfd)
 {
 
     char buff[MAX], username[30], answer;
     int n, check, result = 0;
-    loadQuestions();
-    printf("%s\n", questions[0].task);
-    // infinite loop for chat
-    //for (;;) {
+
+    //Read username from client
+    read(connfd, username, sizeof(username));
+    
+    //check if username exists
+    if(checkUser(username) == 1){
+        check = 1;
+        write(connfd, &check, sizeof(int));
         bzero(buff, MAX);
-   
-        // read the message from client and copy it in buffer
-        read(connfd, username, sizeof(username));
-        // print buffer which contains the client contents
-        if(checkUser(username) == 1){
-            check = 1;
-            write(connfd, &check, sizeof(int));
-            bzero(buff, MAX);
-            strcpy(buff, "You have done this test yet! If you do it again, your result will not be changed! Do you want to continue? [y/n]");
-            write(connfd, buff, sizeof(buff));
-            bzero(buff, MAX);
-            read(connfd, &answer, sizeof(char));
-            if(answer == 'n'){ 
-                return;
-            }
-        }else{
-            check = 0;
-            write(connfd, &check, sizeof(int));
-        } 
-        loadQuestions();
-        for(int i=0; i<questsNum; i++){
-            bzero(buff, MAX);
-            strcpy(buff, questions[i].task);
-            write(connfd, buff, sizeof(buff));
-
-            bzero(buff, MAX);
-            strcpy(buff, questions[i].optionA);
-            write(connfd, buff, sizeof(buff));
-
-            bzero(buff, MAX);
-            strcpy(buff, questions[i].optionB);
-            write(connfd, buff, sizeof(buff));
-
-            bzero(buff, MAX);
-            strcpy(buff, questions[i].optionC);
-            write(connfd, buff, sizeof(buff));
-
-            bzero(buff, MAX);
-            strcpy(buff, questions[i].optionD);
-            write(connfd, buff, sizeof(buff));
-
-            bzero(buff, MAX);
-            read(connfd, &answer, sizeof(char));
-            if(answer == questions[i].correct) result += 2;
+        strcpy(buff, "You have done this test yet! If you do it again, your result will not be changed! Do you want to continue? [y/n]");
+        write(connfd, buff, sizeof(buff));
+        bzero(buff, MAX);
+        read(connfd, &answer, sizeof(char));
+        if(answer == 'n'){ 
+            return;
         }
-        write(connfd, &result, sizeof(int));
-        if(check == 0){
-            saveResult(username, result);
-        }
+    }else{
+        check = 0;
+        write(connfd, &check, sizeof(int));
+    }
+
+    //load the questions
+    loadQuestions();
+
+    //sends questions and read answers
+    for(int i=0; i<questsNum; i++){
+        bzero(buff, MAX);
+        strcpy(buff, questions[i].task);
+        write(connfd, buff, sizeof(buff));
+
+        bzero(buff, MAX);
+        strcpy(buff, questions[i].optionA);
+        write(connfd, buff, sizeof(buff));
+
+        bzero(buff, MAX);
+        strcpy(buff, questions[i].optionB);
+        write(connfd, buff, sizeof(buff));
+
+        bzero(buff, MAX);
+        strcpy(buff, questions[i].optionC);
+        write(connfd, buff, sizeof(buff));
+
+        bzero(buff, MAX);
+        strcpy(buff, questions[i].optionD);
+        write(connfd, buff, sizeof(buff));
+
+        bzero(buff, MAX);
+        read(connfd, &answer, sizeof(char));
+        if(answer == questions[i].correct) result += 2;
+    }
+
+    //send result to the user
+    write(connfd, &result, sizeof(int));
+    
+    //save the result if user doesn`t exist
+    if(check == 0){
+        saveResult(username, result);
+    }
 }
    
 // Driver function
@@ -147,6 +151,7 @@ int main()
     close(sockfd);
 }
 
+//function to check if the user exists
 int checkUser(char username[30]){
     FILE *fp;
     char line[30];
@@ -164,6 +169,7 @@ int checkUser(char username[30]){
     fclose(fp);
 }
 
+//function to load the questions from file into array
 void loadQuestions(){
     FILE *fp;
     char line[256];
@@ -183,6 +189,7 @@ void loadQuestions(){
     fclose(fp);
 }
 
+//function to save the result into file
 void saveResult(char username[], int result){
     FILE* fp;
             if((fp = fopen(usersFile, "a+")) == NULL){
