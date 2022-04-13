@@ -29,6 +29,7 @@ typedef struct Question{
 }Question;
 Question questions[questsNum];
 void loadQuestions();
+void saveResult(char username[], int result);
 int checkUser(char username[30]);
 // Function designed for chat between client and server.
 void func(int connfd)
@@ -88,13 +89,7 @@ void func(int connfd)
         }
         write(connfd, &result, sizeof(int));
         if(check == 0){
-            FILE* fp;
-            if((fp = fopen(usersFile, "a+")) == NULL){
-                printf("Couldn`t open results file\n");
-                exit(1);
-            }
-            fprintf(fp, "%s\n%d\n", username, result);
-            fclose(fp);
+            saveResult(username, result);
         }
 }
    
@@ -186,4 +181,14 @@ void loadQuestions(){
         fgetc(fp);
     }
     fclose(fp);
+}
+
+void saveResult(char username[], int result){
+    FILE* fp;
+            if((fp = fopen(usersFile, "a+")) == NULL){
+                printf("Couldn`t open results file\n");
+                exit(1);
+            }
+            fprintf(fp, "%s\n%d\n", username, result);
+            fclose(fp);
 }

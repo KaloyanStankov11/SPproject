@@ -13,8 +13,15 @@ void func(int sockfd)
 {
     char buff[MAX], username[30], answer;
     int n, check, result;
-    printf("Enter username: ");
-    scanf("%s", username);
+    while(1){
+        printf("Enter username: ");
+        scanf("%s", username);
+        if((username[0]<65) || ((username[0]>90) && (username[0]<97)) || (username[0]>122) || (strlen(username)<3) || (strlen(username)>29)){
+            printf("Invalid username! Try again!\n");
+        }else{
+            break;
+        }
+    }
     write(sockfd, username, sizeof(username));
     read(sockfd, &check, sizeof(int));
     if(check == 1){
