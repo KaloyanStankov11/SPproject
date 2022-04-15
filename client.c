@@ -5,18 +5,29 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <arpa/inet.h>
+#include "question.h"
 #define MAX 256
 #define PORT 8080
 #define SA struct sockaddr
-#define questsNum 5
-void func(int sockfd)
+#define USERNAME_MAX_LENGHT 30
+#define QUESTIONS_NUMBER 5
+
+Question questions[QUESTIONS_NUMBER];
+
+int checkUsernameInput(char username[]);
+
+void communicate(int sockfd)
 {
-    char buff[MAX], username[30], answer;
+    char buff[MAX], username[USERNAME_MAX_LENGHT], answer;
     int n, check, result;
     while(1){
         printf("Enter username: ");
-        scanf("%s", username);
-        if((username[0]<65) || ((username[0]>90) && (username[0]<97)) || (username[0]>122) || (strlen(username)<3) || (strlen(username)>29)){
+        fgets(username, USERNAME_MAX_LENGHT, stdin);
+        size_t len = strlen(username);
+        if (len > 0 && username[len-1] == '\n') {
+            username[--len] = '\0';
+        }
+        if(checkUsernameInput(username) == -1){
             printf("Invalid username! Try again!\n");
         }else{
             break;
@@ -41,27 +52,14 @@ void func(int sockfd)
         }
         write(sockfd, &answer, sizeof(char));
     }
-    for(int i=0; i<questsNum; i++){
+    for(int i=0; i<QUESTIONS_NUMBER; i++){
         printf("================================================================================================================\n");
-        bzero(buff, sizeof(buff));
-        read(sockfd, buff, sizeof(buff));
-        printf("Question %d: %s", i+1, buff);
-
-        bzero(buff, sizeof(buff));
-        read(sockfd, buff, sizeof(buff));
-        printf("A: %s", buff);
-
-        bzero(buff, sizeof(buff));
-        read(sockfd, buff, sizeof(buff));
-        printf("B: %s", buff);
-
-        bzero(buff, sizeof(buff));
-        read(sockfd, buff, sizeof(buff));
-        printf("C: %s", buff);
-
-        bzero(buff, sizeof(buff));
-        read(sockfd, buff, sizeof(buff));
-        printf("D: %s", buff);
+        read(sockfd, &questions[i], sizeof(Question));
+        printf("Question %d: %s", i+1, questions[i].task);
+        printf("A: %s", questions[i].optionA);
+        printf("B: %s", questions[i].optionB);
+        printf("C: %s", questions[i].optionC);
+        printf("D: %s", questions[i].optionD);
 
         while(1){
             printf("Your answer(Upper case only): ");
@@ -76,7 +74,7 @@ void func(int sockfd)
     }
     read(sockfd, &result, sizeof(int));
     printf("================================================================================================================\n");
-    printf("Test is done!\nYour result is: %d/%d\n", result, questsNum*2);
+    printf("Test is done!\nYour result is: %d/%d\n", result, QUESTIONS_NUMBER*2);
     
 }
    
@@ -108,9 +106,15 @@ int main()
     else
         printf("connected to the server..\n");
    
-    // function for chat
-    func(sockfd);
+    // function for communication
+    communicate(sockfd);
    
     // close the socket
     close(sockfd);
+}
+
+int checkUsernameInput(char username[]){
+    if((username[0]<65) || ((username[0]>90) && (username[0]<97)) || (username[0]>122) || (strlen(username)<3) || (strlen(username)>29))
+        return -1;
+    else return 1;
 }

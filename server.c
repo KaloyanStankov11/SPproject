@@ -6,53 +6,45 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
-#define MAX 256
+#include "question.h"
+#define MAX_LINE_LENGHT 256
 #define PORT 8080
 #define SA struct sockaddr
-#define usersFile "usersResults.txt"
-#define questionsFile "questions.txt"
-#define questsNum 5
-#define MAX_LINE_LENGTH 30
+#define USERS_FILE "usersResults.txt"
+#define QUESTIONS_FILE "questions.txt"
+#define QUESTIONS_NUMBER 5
+#define USERNAME_MAX_LENGHT 30
 
-typedef struct User{
-    char username[30];
-    int result;
-}User;
-
-typedef struct Question{
-    char task[MAX];
-    char optionA[MAX];
-    char optionB[MAX];
-    char optionC[MAX];
-    char optionD[MAX];
-    char correct;
-}Question;
-Question questions[questsNum];
+Question questions[QUESTIONS_NUMBER];
 void loadQuestions();
-void saveResult(char username[], int result);
+int saveResult(char username[], int result);
 int checkUser(char username[30]);
+
 // Function designed for communication between client and server.
-void func(int connfd)
+void communicate(int connfd)
 {
 
-    char buff[MAX], username[30], answer;
+    char buff[MAX_LINE_LENGHT], username[USERNAME_MAX_LENGHT], answer;
     int n, check, result = 0;
 
     //Read username from client
     read(connfd, username, sizeof(username));
     
     //check if username exists
-    if(checkUser(username) == 1){
+    check = checkUser(username);
+    if(check == 1){
         check = 1;
         write(connfd, &check, sizeof(int));
-        bzero(buff, MAX);
+        bzero(buff, MAX_LINE_LENGHT);
         strcpy(buff, "You have done this test yet! If you do it again, your result will not be changed! Do you want to continue? [y/n]");
         write(connfd, buff, sizeof(buff));
-        bzero(buff, MAX);
+        bzero(buff, MAX_LINE_LENGHT);
         read(connfd, &answer, sizeof(char));
         if(answer == 'n'){ 
             return;
         }
+    }else if(check == -1){
+        return;
     }else{
         check = 0;
         write(connfd, &check, sizeof(int));
@@ -62,28 +54,10 @@ void func(int connfd)
     loadQuestions();
 
     //sends questions and read answers
-    for(int i=0; i<questsNum; i++){
-        bzero(buff, MAX);
-        strcpy(buff, questions[i].task);
-        write(connfd, buff, sizeof(buff));
+    for(int i=0; i<QUESTIONS_NUMBER; i++){
+        write(connfd, &questions[i], sizeof(Question));
 
-        bzero(buff, MAX);
-        strcpy(buff, questions[i].optionA);
-        write(connfd, buff, sizeof(buff));
-
-        bzero(buff, MAX);
-        strcpy(buff, questions[i].optionB);
-        write(connfd, buff, sizeof(buff));
-
-        bzero(buff, MAX);
-        strcpy(buff, questions[i].optionC);
-        write(connfd, buff, sizeof(buff));
-
-        bzero(buff, MAX);
-        strcpy(buff, questions[i].optionD);
-        write(connfd, buff, sizeof(buff));
-
-        bzero(buff, MAX);
+        bzero(buff, MAX_LINE_LENGHT);
         read(connfd, &answer, sizeof(char));
         if(answer == questions[i].correct) result += 2;
     }
@@ -144,10 +118,10 @@ int main()
     else
         printf("server accept the client...\n");
    
-    // Function for chatting between client and server
-    func(connfd);
+    // Function for communicating between client and server
+    communicate(connfd);
    
-    // After chatting close the socket
+    //close the socket
     close(sockfd);
 }
 
@@ -155,9 +129,9 @@ int main()
 int checkUser(char username[30]){
     FILE *fp;
     char line[30];
-    if((fp=fopen(usersFile, "rw"))==NULL){
+    if((fp=fopen(USERS_FILE, "rw"))==NULL){
         printf("Couldnt open file with users!\n"); 
-        exit(1);
+        return -1;
     }
     while (fscanf(fp, "%[^\n] ", line) != EOF) {
         if(strcmp(line, username) == 0){
@@ -173,16 +147,16 @@ int checkUser(char username[30]){
 void loadQuestions(){
     FILE *fp;
     char line[256];
-    if((fp=fopen(questionsFile, "r"))==NULL){
+    if((fp=fopen(QUESTIONS_FILE, "r"))==NULL){
         printf("Couldnt open file with users!\n"); 
         exit(1);
     }
-    for(int i=0; i<questsNum; i++){
-        fgets(questions[i].task, MAX, fp);
-        fgets(questions[i].optionA, MAX, fp);
-        fgets(questions[i].optionB, MAX, fp);
-        fgets(questions[i].optionC, MAX, fp);
-        fgets(questions[i].optionD, MAX, fp);
+    for(int i=0; i<QUESTIONS_NUMBER; i++){
+        fgets(questions[i].task, MAX_LINE_LENGHT, fp);
+        fgets(questions[i].optionA, MAX_LINE_LENGHT, fp);
+        fgets(questions[i].optionB, MAX_LINE_LENGHT, fp);
+        fgets(questions[i].optionC, MAX_LINE_LENGHT, fp);
+        fgets(questions[i].optionD, MAX_LINE_LENGHT, fp);
         questions[i].correct = fgetc(fp);
         fgetc(fp);
     }
@@ -190,12 +164,13 @@ void loadQuestions(){
 }
 
 //function to save the result into file
-void saveResult(char username[], int result){
+int saveResult(char username[], int result){
     FILE* fp;
-            if((fp = fopen(usersFile, "a+")) == NULL){
-                printf("Couldn`t open results file\n");
-                exit(1);
-            }
-            fprintf(fp, "%s\n%d\n", username, result);
-            fclose(fp);
+    if((fp = fopen(USERS_FILE, "a+")) == NULL){
+        printf("Couldn`t open results file\n");
+        return -1;
+    }
+    fprintf(fp, "%s\n%d\n", username, result);
+    fclose(fp);
+    return 1;
 }
